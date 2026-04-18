@@ -54,8 +54,13 @@
                         Source: {{ job.source }}
                     </div>
                     <div class="job-actions">
-                        <button class="btn btn-outline">Save</button>
-                        <a href="{{ job.apply_url }}" class="btn btn-primary" target="_blank">
+                        <button class="btn btn-outline" onclick="trackJob('{{ job.id }}', 'saved')">Save</button>
+                        <button class="btn btn-outline btn-cover"
+                                onclick='showCoverLetter({{ job | tojson }})'>
+                            <i class="fas fa-envelope"></i> Cover Letter
+                        </button>
+                        <a href="{{ job.apply_url }}" class="btn btn-primary" target="_blank"
+                           onclick="trackJob('{{ job.id }}', 'applied')">
                             Apply Now
                         </a>
                     </div>
@@ -257,4 +262,70 @@
     }
 }
 </style>
+
+<!-- Cover Letter Modal -->
+<div id="coverLetterModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:14px; padding:28px; max-width:580px; width:90%; max-height:80vh; overflow-y:auto; position:relative;">
+        <button onclick="document.getElementById('coverLetterModal').style.display='none'"
+                style="position:absolute; top:14px; right:16px; background:none; border:none; font-size:1.4rem; cursor:pointer; color:#666;">&times;</button>
+        <h2 style="margin-bottom:6px; color:#007BFF;"><i class="fas fa-envelope"></i> AI Cover Letter</h2>
+        <p id="coverLetterJobTitle" style="color:#888; font-size:.88rem; margin-bottom:16px;"></p>
+        <div id="coverLetterContent" style="background:#f8f9fa; border-radius:8px; padding:16px; font-size:.9rem; line-height:1.7; min-height:80px;">
+            <span style="color:#aaa;"><i class="fas fa-spinner fa-spin"></i> Generating...</span>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+            <button onclick="copyCoverLetter()" class="btn btn-primary" style="background:#007BFF; color:#fff; border:none; padding:9px 20px; border-radius:8px; cursor:pointer; font-weight:600;">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+            <button onclick="document.getElementById('coverLetterModal').style.display='none'"
+                    style="background:#6c757d; color:#fff; border:none; padding:9px 20px; border-radius:8px; cursor:pointer; font-weight:600;">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function trackJob(jobId, action) {
+    fetch('/track-job', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({job_id: jobId, action: action})
+    }).catch(() => {});
+}
+
+function showCoverLetter(job) {
+    const modal = document.getElementById('coverLetterModal');
+    modal.style.display = 'flex';
+    document.getElementById('coverLetterJobTitle').textContent = job.title + ' at ' + job.company;
+    document.getElementById('coverLetterContent').innerHTML =
+        '<span style="color:#aaa;"><i class="fas fa-spinner fa-spin"></i> Generating your personalised cover letter...</span>';
+    
+    fetch('/generate-cover-letter', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({job: job})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('coverLetterContent').textContent = data.cover_letter;
+        } else {
+            document.getElementById('coverLetterContent').innerHTML =
+                '<span style="color:#dc3545;">Could not generate cover letter. Please try again.</span>';
+        }
+    })
+    .catch(() => {
+        document.getElementById('coverLetterContent').innerHTML =
+            '<span style="color:#dc3545;">Network error. Please try again.</span>';
+    });
+}
+
+function copyCoverLetter() {
+    const text = document.getElementById('coverLetterContent').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Cover letter copied to clipboard!');
+    });
+}
+</script>
 {% endblock %}

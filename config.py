@@ -12,7 +12,7 @@ class Config:
     MYSQL_HOST = 'localhost'
     MYSQL_USER = 'root'
     MYSQL_PASSWORD = '------'
-    MYSQL_DATABASE = 'bluecollar'
+    MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', 'bluecollar_resume')
     
     # File Upload Configuration
     UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'uploads')
@@ -20,7 +20,7 @@ class Config:
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
     
     # API Keys
-    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyAJf5-sD10EHmxKqlEtwApTHu_E5wSZDHE')
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
     TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
     TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
     TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', '')

@@ -75,7 +75,7 @@ def generate_modern_resume(user_data, filepath):
     header_table_data = [
         [Paragraph(full_name, styles['TitleModern'])]
     ]
-    header_table = Table(header_table_data, colWidths=[6*inch])
+    header_table = Table(header_table_data, colWidths=[7.5*inch])
     header_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#007BFF')),
         ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),

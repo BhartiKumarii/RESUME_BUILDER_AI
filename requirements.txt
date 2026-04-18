@@ -9,3 +9,8 @@ openai==0.28.1
 twilio==8.10.0
 gunicorn==21.2.0
 cryptography==41.0.4
+SpeechRecognition
+deep-translator
+pyttsx3
+flask-cors
+google-genai

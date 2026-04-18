@@ -13,9 +13,8 @@ assistant_bp = Blueprint("assistant", __name__)
 CORS(assistant_bp)
 
 # ---------- CONFIG ----------
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY",'AIzaSyAJf5-sD10EHmxKqlEtwApTHu_E5wSZDHE')
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 if not GEMINI_API_KEY:
-    # fail-fast so developer knows to configure env
     raise RuntimeError("❌ Please set GEMINI_API_KEY environment variable first.")
 genai.configure(api_key=GEMINI_API_KEY)
 

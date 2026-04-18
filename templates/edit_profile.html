@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="edit-profile-page">
+
+    <div class="page-header">
+        <h1><i class="fas fa-user-edit"></i> Edit Profile</h1>
+        <p>Update your personal information below.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                <i class="fas fa-{{ 'check' if category == 'success' else 'exclamation-triangle' }}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <form method="POST" action="{{ url_for('edit_profile') }}" id="editProfileForm">
+            
+            <div class="form-section">
+                <h3><i class="fas fa-user"></i> Personal Information</h3>
+
+                <div class="form-group">
+                    <label for="full_name">Full Name <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="full_name" name="full_name"
+                               value="{{ user.full_name or '' }}"
+                               placeholder="Enter your full name" required maxlength="100">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" name="email"
+                               value="{{ user.email or '' }}"
+                               placeholder="Enter your email" maxlength="100">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-venus-mars"></i>
+                        <select id="gender" name="gender">
+                            <option value="">-- Select --</option>
+                            <option value="Male" {{ 'selected' if user.gender == 'Male' }}>Male</option>
+                            <option value="Female" {{ 'selected' if user.gender == 'Female' }}>Female</option>
+                            <option value="Other" {{ 'selected' if user.gender == 'Other' }}>Other</option>
+                            <option value="Prefer not to say" {{ 'selected' if user.gender == 'Prefer not to say' }}>Prefer not to say</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="address">Address</label>
+                    <div class="input-with-icon textarea-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <textarea id="address" name="address" rows="3"
+                                  placeholder="Enter your full address">{{ user.address or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section readonly-section">
+                <h3><i class="fas fa-lock"></i> Read-only Information</h3>
+                <p class="hint">These fields cannot be changed after registration.</p>
+                <div class="readonly-grid">
+                    <div class="readonly-item">
+                        <span class="label"><i class="fas fa-phone"></i> Mobile</span>
+                        <span class="value">{{ user.mobile }}</span>
+                    </div>
+                    <div class="readonly-item">
+                        <span class="label"><i class="fas fa-briefcase"></i> Profession</span>
+                        <span class="value">{{ user.profession or '—' }}</span>
+                    </div>
+                    <div class="readonly-item">
+                        <span class="label"><i class="fas fa-id-card"></i> ID Verified</span>
+                        <span class="value">
+                            {% if user.id_verified %}
+                            <span class="badge-success-inline">✓ Verified</span>
+                            {% else %}
+                            <span class="badge-pending-inline">⏳ Pending</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<style>
+.edit-profile-page { max-width: 640px; margin: 0 auto; padding: 20px 0; }
+.page-header { margin-bottom: 24px; }
+.page-header h1 { font-size: 1.8rem; color: #007BFF; margin-bottom: 4px; }
+.page-header p { color: #666; }
+
+.alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+.alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+.card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.form-section { margin-bottom: 28px; }
+.form-section h3 { font-size: 1rem; color: #333; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; font-size: 0.88rem; font-weight: 600; color: #444; margin-bottom: 6px; }
+.required { color: #dc3545; }
+.input-with-icon { position: relative; }
+.input-with-icon i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #aaa; font-size: 0.9rem; z-index: 1; }
+.textarea-icon i { top: 14px; transform: none; }
+.input-with-icon input,
+.input-with-icon select,
+.input-with-icon textarea {
+    width: 100%; padding: 10px 12px 10px 36px;
+    border: 1.5px solid #dee2e6; border-radius: 8px;
+    font-size: 0.92rem; outline: none; transition: border-color .2s;
+    background: #fafafa; box-sizing: border-box;
+}
+.input-with-icon input:focus,
+.input-with-icon select:focus,
+.input-with-icon textarea:focus {
+    border-color: #007BFF; background: #fff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,.1);
+}
+.input-with-icon textarea { resize: vertical; }
+
+.readonly-section { background: #f8f9fa; border-radius: 10px; padding: 16px 20px; }
+.readonly-section .hint { font-size: 0.82rem; color: #888; margin-bottom: 14px; }
+.readonly-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.readonly-item { display: flex; flex-direction: column; gap: 4px; }
+.readonly-item .label { font-size: 0.78rem; color: #888; display: flex; align-items: center; gap: 5px; }
+.readonly-item .value { font-size: 0.9rem; font-weight: 600; color: #333; }
+.badge-success-inline { color: #28a745; font-weight: 700; }
+.badge-pending-inline { color: #ffc107; font-weight: 700; }
+
+.form-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 22px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all .2s; }
+.btn-primary { background: #007BFF; color: white; }
+.btn-primary:hover { background: #0056b3; }
+.btn-secondary { background: #6c757d; color: white; }
+.btn-secondary:hover { background: #545b62; }
+
+@media (max-width: 500px) { .readonly-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+{% endblock %}

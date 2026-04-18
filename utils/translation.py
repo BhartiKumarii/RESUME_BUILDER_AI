@@ -10,7 +10,7 @@ class AITranslator:
         self.api_key = Config.GEMINI_API_KEY
         if self.api_key:
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-pro')
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
         else:
             self.model = None
         

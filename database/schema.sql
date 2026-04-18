@@ -4,8 +4,8 @@
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     mobile VARCHAR(15) UNIQUE NOT NULL,
-    full_name VARCHAR(20),
-    email VARCHAR(30),
+    full_name VARCHAR(100),
+    email VARCHAR(100),
     gender VARCHAR(20),
     address TEXT,
     profession VARCHAR(100),
@@ -49,6 +49,17 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
     verified BOOLEAN DEFAULT FALSE,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Resume version history table
+CREATE TABLE IF NOT EXISTS resume_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_mobile VARCHAR(15) NOT NULL,
+    template VARCHAR(50) NOT NULL DEFAULT 'modern',
+    file_path VARCHAR(255) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_mobile) REFERENCES users(mobile) ON DELETE CASCADE
 );
 
 create table if not exists professions (

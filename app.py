@@ -308,15 +308,26 @@ def passkey_login():
         passkey = request.form.get('passkey')
         remember_device = request.form.get('remember_device')
         
-        # In a real app, verify passkey against stored hash
-        if passkey:
+        stored_hash = user.get('passkey_hash')
+        if passkey and stored_hash:
+            # Verify passkey against stored hash
+            import hashlib
+            entered_hash = hashlib.sha256(passkey.encode()).hexdigest()
+            if entered_hash == stored_hash:
+                session['authenticated'] = True
+                if remember_device:
+                    session['remember_me'] = True
+                    session.permanent = True
+                return redirect(url_for('jobs'))
+            else:
+                flash('Invalid passkey. Please try again.', 'error')
+        elif passkey and not stored_hash:
+            # No passkey set yet - allow login and prompt setup
             session['authenticated'] = True
-            if remember_device:
-                session['remember_me'] = True
-                session.permanent = True
+            flash('No passkey set. Please set one for future logins.', 'info')
             return redirect(url_for('jobs'))
         else:
-            flash('Invalid passkey. Please try again.', 'error')
+            flash('Please enter your passkey.', 'error')
     
     return render_template('passkey_login.html', mobile=session['mobile'])
 
@@ -403,7 +414,7 @@ def id_verification():
                 'mobile': session.get('mobile'),
                 'full_name': session.get('full_name', ''),
                 'email': session.get('email', ''),
-                'gender ': session.get('gender', ''),
+                'gender': session.get('gender', ''),
                 'address': session.get('address', ''),
                 'profession': session.get('profession', ''),
                 'verification_data': session.get('verification_data'),
@@ -431,10 +442,25 @@ def stay_signed_in():
     
     if request.method == 'POST':
         stay_signed = request.form.get('stay_signed')
-        if stay_signed == 'yes':
-            # Set up passkey for future logins
-            session['passkey_setup'] = True
-            flash('Passkey setup completed! You can use it for future logins.', 'success')
+        passkey = request.form.get('passkey', '').strip()
+        if stay_signed == 'yes' and passkey:
+            import hashlib
+            passkey_hash = hashlib.sha256(passkey.encode()).hexdigest()
+            # Save passkey hash to database
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute(
+                    'UPDATE users SET passkey_hash = %s WHERE mobile = %s',
+                    (passkey_hash, session.get('mobile'))
+                )
+                conn.commit()
+                cursor.close()
+                conn.close()
+                session['passkey_setup'] = True
+                flash('Passkey saved! You can use it for future logins.', 'success')
+            except Exception as e:
+                flash('Could not save passkey. You can set one later.', 'warning')
         return redirect(url_for('resume'))
     
     return render_template('stay_signed_in.html')
@@ -462,6 +488,20 @@ def resume():
         # Generate PDF resume
         pdf_path = generate_resume_pdf(resume_data, template)
         session['resume_path'] = pdf_path
+
+        # Save to resume history
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                'INSERT INTO resume_history (user_mobile, template, file_path, file_name) VALUES (%s, %s, %s, %s)',
+                (session.get('mobile'), template, pdf_path, os.path.basename(pdf_path))
+            )
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Resume history save error: {e}")
         
         return redirect(url_for('jobs'))
     
@@ -556,6 +596,8 @@ def translate_text():
 
 @app.route('/track-job', methods=['POST'])
 def track_job():
+    if not session.get('authenticated'):
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
     try:
         data = request.get_json()
         job_id = data.get('job_id')
@@ -583,6 +625,213 @@ def logout():
     session.clear()
     flash('You have been logged out successfully.', 'success')
     return redirect(url_for('login'))
+
+# ─────────────────────────────────────────────
+#  NEW FEATURE 1: Dashboard with stats
+# ─────────────────────────────────────────────
+@app.route('/dashboard')
+def dashboard():
+    if not session.get('authenticated'):
+        return redirect(url_for('login'))
+    
+    mobile = session.get('mobile')
+    user = get_user_from_db(mobile)
+    stats = {'resumes_generated': 0, 'jobs_applied': 0, 'jobs_saved': 0, 'jobs_viewed': 0}
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Count job interactions
+        cursor.execute(
+            'SELECT action, COUNT(*) as cnt FROM job_tracking WHERE user_mobile = %s GROUP BY action',
+            (mobile,)
+        )
+        for row in cursor.fetchall():
+            stats[f"jobs_{row['action']}"] = row['cnt']
+        
+        # Count resumes
+        cursor.execute(
+            'SELECT COUNT(*) as cnt FROM resume_history WHERE user_mobile = %s',
+            (mobile,)
+        )
+        result = cursor.fetchone()
+        stats['resumes_generated'] = result['cnt'] if result else 0
+        
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Dashboard stats error: {e}")
+    
+    return render_template('dashboard.html', user=user, stats=stats,
+                           profession=session.get('profession', ''))
+
+
+# ─────────────────────────────────────────────
+#  NEW FEATURE 2: Edit Profile
+# ─────────────────────────────────────────────
+@app.route('/edit-profile', methods=['GET', 'POST'])
+def edit_profile():
+    if not session.get('authenticated'):
+        return redirect(url_for('login'))
+    
+    mobile = session.get('mobile')
+    user = get_user_from_db(mobile)
+    
+    if request.method == 'POST':
+        updated = {
+            'mobile': mobile,
+            'full_name': request.form.get('full_name', user.get('full_name', '')),
+            'email': request.form.get('email', user.get('email', '')),
+            'gender': request.form.get('gender', user.get('gender', '')),
+            'address': request.form.get('address', user.get('address', '')),
+            'profession': user.get('profession', session.get('profession', '')),
+            'verification_data': user.get('verification_data') or session.get('verification_data', {}),
+            'id_verified': user.get('id_verified', False),
+            'id_data': user.get('id_data'),
+            'language': session.get('language', 'en'),
+        }
+        # Update session too
+        session['full_name'] = updated['full_name']
+        session['email'] = updated['email']
+        session['address'] = updated['address']
+        
+        if save_user_to_db(updated):
+            flash('Profile updated successfully!', 'success')
+        else:
+            flash('Error updating profile.', 'error')
+        return redirect(url_for('edit_profile'))
+    
+    return render_template('edit_profile.html', user=user)
+
+
+# ─────────────────────────────────────────────
+#  NEW FEATURE 3: AI Cover Letter Generator
+# ─────────────────────────────────────────────
+@app.route('/generate-cover-letter', methods=['POST'])
+def generate_cover_letter():
+    if not session.get('authenticated'):
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    try:
+        data = request.get_json()
+        job_data = data.get('job', {})
+        
+        user_data = {
+            'profession': session.get('profession', ''),
+            'full_name': session.get('full_name', ''),
+            'verification_data': session.get('verification_data', {}),
+        }
+        
+        cover_letter = ai_helper.generate_cover_letter(user_data, job_data)
+        return jsonify({'success': True, 'cover_letter': cover_letter})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ─────────────────────────────────────────────
+#  NEW FEATURE 4: Resume History (version tracking)
+# ─────────────────────────────────────────────
+@app.route('/resume-history')
+def resume_history():
+    if not session.get('authenticated'):
+        return redirect(url_for('login'))
+    
+    mobile = session.get('mobile')
+    history = []
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            'SELECT * FROM resume_history WHERE user_mobile = %s ORDER BY created_at DESC LIMIT 10',
+            (mobile,)
+        )
+        history = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Resume history error: {e}")
+    
+    return render_template('resume_history.html', history=history)
+
+
+@app.route('/download-resume-version/<int:version_id>')
+def download_resume_version(version_id):
+    if not session.get('authenticated'):
+        return redirect(url_for('login'))
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            'SELECT * FROM resume_history WHERE id = %s AND user_mobile = %s',
+            (version_id, session.get('mobile'))
+        )
+        version = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if version and os.path.exists(version['file_path']):
+            return send_file(version['file_path'], as_attachment=True,
+                             download_name=f"resume_v{version_id}.pdf")
+    except Exception as e:
+        print(f"Version download error: {e}")
+    
+    flash('Resume version not found.', 'error')
+    return redirect(url_for('resume_history'))
+
+
+# ─────────────────────────────────────────────
+#  NEW FEATURE 5: Job search/filter API
+# ─────────────────────────────────────────────
+@app.route('/api/jobs/search', methods=['GET'])
+def search_jobs():
+    if not session.get('authenticated'):
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    
+    profession = request.args.get('profession', session.get('profession', 'Worker'))
+    location = request.args.get('location', '')
+    min_salary = request.args.get('min_salary', '')
+    experience = request.args.get('experience', session.get('verification_data', {}).get('experience_years', 0))
+    
+    user_data = {
+        'profession': profession,
+        'experience': experience,
+        'skills': session.get('verification_data', {}).get('skills', ''),
+        'location': location,
+    }
+    
+    jobs = job_recommender.get_recommendations(user_data)
+    
+    # Filter by location if provided
+    if location:
+        filtered = [j for j in jobs if location.lower() in j.get('location', '').lower()]
+        if filtered:
+            jobs = filtered
+    
+    return jsonify({'success': True, 'jobs': jobs, 'count': len(jobs)})
+
+
+# ─────────────────────────────────────────────
+#  NEW FEATURE 6: Profile completeness API
+# ─────────────────────────────────────────────
+@app.route('/api/profile/completeness')
+def profile_completeness():
+    if not session.get('authenticated'):
+        return jsonify({'success': False}), 401
+    
+    checks = {
+        'mobile': bool(session.get('mobile')),
+        'full_name': bool(session.get('full_name')),
+        'email': bool(session.get('email')),
+        'address': bool(session.get('address')),
+        'profession': bool(session.get('profession')),
+        'verification_data': bool(session.get('verification_data')),
+        'id_verified': bool(session.get('id_verified')),
+        'resume_generated': bool(session.get('resume_path')),
+    }
+    score = int(sum(checks.values()) / len(checks) * 100)
+    return jsonify({'success': True, 'score': score, 'checks': checks})
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

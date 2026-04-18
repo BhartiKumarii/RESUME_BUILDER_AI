@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="history-page">
+
+    <div class="page-header">
+        <h1><i class="fas fa-history"></i> Resume History</h1>
+        <p>All your previously generated resumes — download any version anytime.</p>
+    </div>
+
+    {% if history %}
+    <div class="history-grid">
+        {% for item in history %}
+        <div class="history-card">
+            <div class="history-icon">
+                <i class="fas fa-file-pdf"></i>
+            </div>
+            <div class="history-info">
+                <div class="history-top">
+                    <span class="template-badge template-{{ item.template }}">
+                        {{ item.template | capitalize }}
+                    </span>
+                    <span class="version-num">v{{ loop.revindex }}</span>
+                </div>
+                <div class="history-filename" title="{{ item.file_name }}">
+                    {{ item.file_name }}
+                </div>
+                <div class="history-date">
+                    <i class="fas fa-calendar-alt"></i>
+                    {{ item.created_at.strftime('%d %b %Y, %I:%M %p') if item.created_at else '—' }}
+                </div>
+            </div>
+            <div class="history-actions">
+                <a href="{{ url_for('download_resume_version', version_id=item.id) }}"
+                   class="btn-download" title="Download this version">
+                    <i class="fas fa-download"></i>
+                    Download
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="history-note">
+        <i class="fas fa-info-circle"></i>
+        Showing your last {{ history | length }} resume(s). Older versions may be cleaned up automatically.
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-file-pdf empty-icon"></i>
+        <h2>No resumes yet</h2>
+        <p>You haven't generated any resumes yet. Create your first one now!</p>
+        <a href="{{ url_for('resume') }}" class="btn-primary-lg">
+            <i class="fas fa-plus"></i> Generate My Resume
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="action-row">
+        <a href="{{ url_for('resume') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Generate New Resume
+        </a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+</div>
+
+<style>
+.history-page { max-width: 860px; margin: 0 auto; padding: 20px 0; }
+.page-header { margin-bottom: 28px; }
+.page-header h1 { font-size: 1.8rem; color: #007BFF; margin-bottom: 4px; }
+.page-header p { color: #666; }
+
+.history-grid { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+
+.history-card {
+    background: #fff; border-radius: 12px; padding: 18px 22px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    display: flex; align-items: center; gap: 18px;
+    transition: box-shadow .2s;
+}
+.history-card:hover { box-shadow: 0 4px 18px rgba(0,123,255,0.12); }
+
+.history-icon {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: #fff3f3; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.history-icon i { font-size: 1.6rem; color: #e74c3c; }
+
+.history-info { flex: 1; min-width: 0; }
+.history-top { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+
+.template-badge {
+    font-size: 0.72rem; font-weight: 700; padding: 2px 10px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: .5px;
+}
+.template-modern { background: #e3f0ff; color: #0056b3; }
+.template-classic { background: #e8f5e9; color: #1b5e20; }
+.template-compact { background: #fff3e0; color: #e65100; }
+.template-executive { background: #ede7f6; color: #4527a0; }
+
+.version-num { font-size: 0.72rem; color: #aaa; font-weight: 600; }
+
+.history-filename {
+    font-size: 0.88rem; color: #333; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 340px;
+}
+
+.history-date { font-size: 0.78rem; color: #888; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+
+.btn-download {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; background: #007BFF; color: white;
+    border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600;
+    transition: background .2s; white-space: nowrap;
+}
+.btn-download:hover { background: #0056b3; }
+
+.history-note {
+    font-size: 0.82rem; color: #888; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 6px;
+}
+
+.empty-state {
+    text-align: center; padding: 60px 20px;
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    margin-bottom: 20px;
+}
+.empty-icon { font-size: 4rem; color: #dee2e6; display: block; margin-bottom: 16px; }
+.empty-state h2 { color: #444; margin-bottom: 8px; }
+.empty-state p { color: #888; margin-bottom: 20px; }
+.btn-primary-lg {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 28px; background: #007BFF; color: white;
+    border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 1rem;
+    transition: background .2s;
+}
+.btn-primary-lg:hover { background: #0056b3; }
+
+.action-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 22px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all .2s; }
+.btn-primary { background: #007BFF; color: white; }
+.btn-primary:hover { background: #0056b3; }
+.btn-secondary { background: #6c757d; color: white; }
+.btn-secondary:hover { background: #545b62; }
+
+@media (max-width: 600px) {
+    .history-card { flex-wrap: wrap; }
+    .history-actions { width: 100%; }
+    .btn-download { width: 100%; justify-content: center; }
+}
+</style>
+{% endblock %}

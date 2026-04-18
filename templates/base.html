@@ -204,6 +204,10 @@
             
             <nav class="nav">
                 {% if session.get('authenticated') %}
+                <a href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                </a>
                 <a href="{{ url_for('jobs') }}">
                     <i class="fas fa-briefcase"></i>
                     Jobs
@@ -212,9 +216,13 @@
                     <i class="fas fa-file-pdf"></i>
                     Resume
                 </a>
-                <a href="{{ url_for('profile') }}">
-                    <i class="fas fa-user"></i>
-                    Profile
+                <a href="{{ url_for('resume_history') }}">
+                    <i class="fas fa-history"></i>
+                    History
+                </a>
+                <a href="{{ url_for('edit_profile') }}">
+                    <i class="fas fa-user-edit"></i>
+                    Edit Profile
                 </a>
                 <a href="{{ url_for('logout') }}">
                     <i class="fas fa-sign-out-alt"></i>
