@@ -1,0 +1,50 @@
+# Virtual Environment
+venv/
+env/
+.venv/
+.env/
+lib/
+lib64/
+bin/
+include/
+pyvenv.cfg
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+*.whl
+
+# Environment Variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (user-generated files)
+uploads/*.pdf
+uploads/*.png
+uploads/*.jpg
+uploads/*.jpeg
+!uploads/.gitkeep
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite3
